@@ -16,7 +16,7 @@ Authors:
 
 Jianing Sun (sunjn118@nenu.edu.cn)
 
-Jun Liu (junliucd@nenu.edu.cn)
+Jun Liu (liuj292@nenu.edu.cn)
         
 Version : 1.0 
 
