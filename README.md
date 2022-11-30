@@ -19,3 +19,6 @@ Jianing Sun (sunjn118@nenu.edu.cn)
 Jun Liu (junliucd@nenu.edu.cn)
         
 Version : 1.0 
+
+The collected dataset including Real Underwater, Sand dust, and Hazy images (RUSH) can be reach from BaiduNetDisk:
+链接: https://pan.baidu.com/s/1sCqpl1IplPGy7NZWqxARGQ?pwd=1126 提取码: 1126 
