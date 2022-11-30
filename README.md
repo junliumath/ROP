@@ -13,7 +13,6 @@ If you are inteseted in commercial purpose, please comply with the patent: ZL 20
 
 
 Authors: Jianing Sun (sunjn118@nenu.edu.cn)
-
         Jun Liu (junliucd@nenu.edu.cn)
         
 Version : 1.0 
