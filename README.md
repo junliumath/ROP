@@ -12,7 +12,10 @@ The code and the algorithm are for non-commercial use only.
 If you are inteseted in commercial purpose, please comply with the patent: ZL 202011281893.3 and contact the authors, thank you!
 
 
-Authors: Jianing Sun (sunjn118@nenu.edu.cn)
-        Jun Liu (junliucd@nenu.edu.cn)
+Authors: 
+
+Jianing Sun (sunjn118@nenu.edu.cn)
+
+Jun Liu (junliucd@nenu.edu.cn)
         
 Version : 1.0 
