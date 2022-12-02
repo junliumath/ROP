@@ -1,4 +1,4 @@
-# ROP
+# ROP - Rank-One Prior: Real-time Scene Recovery
 Description
 -----
 The Code is created based on the method described in the following papers: 
