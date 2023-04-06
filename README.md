@@ -5,7 +5,7 @@ The Code is created based on the method described in the following papers:
 
 [1] "Rank-One Prior: Toward Real-Time Scene Recovery", Jun Liu, Ryan Wen Liu, Jianing Sun, Tieyong Zeng, IEEE International Conference on Computer Vision (CVPR), 2021, 14802-14810.
 
-[2] "Rank-One Prior: Real-time Scene Recovery", Jun Liu, Ryan Wen Liu, Jianing Sun, Tieyong Zeng, IEEE Transaction on Pattern Analysis and Machine Intelligence, accepted, 2022.
+[2] "Rank-One Prior: Real-time Scene Recovery", Jun Liu, Ryan Wen Liu, Jianing Sun, Tieyong Zeng, IEEE Transaction on Pattern Analysis and Machine Intelligence, 2022, doi: 10.1109/tpami.2022.3226276
 
 The code and the algorithm are for non-commercial use only. 
 
