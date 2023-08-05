@@ -17,16 +17,17 @@ function demo_Rank1plus
 
 %  
 %   Author: Jianing Sun (sunjn118@nenu.edu.cn)
-%   Version : 1.0 
+%           Jun Liu (junliucd@nenu.edu.cn)
+%   Version : 1.1 
 
 %%%%==================================================
  
-
+close all
 ImageType = 3; 
 param = defaultParamSetting(ImageType);
 
 dir = 'images';
-imgname = 'sandstorm1.png'; % underw1.jpg  hazy1.png sandstorm1.png
+imgname = 'hazy1.png'; % underw1.jpg  hazy1.png sandstorm1.png
 img     = im2double(imread([dir '/' imgname]));
 % img = imcrop(img);
 
@@ -37,20 +38,21 @@ end
  
 %%%
 imgvec    = reshape(img, size(img,1)*size(img,2), 3); % vectorization
-%%% To update unfied spectrum 
+%%% Update the unified spectrum 
 selectedpixel = ones( size(imgvec) );
-previous_basis(1,1,1:3) = [1 1 1];  
+previous_basis(1,1,1:3) = [1 1 1];  % initialization of spectrum basis
 for step = 1 : 20
     % unified spectrum
     x_RGB(1 ,1, 1:3) =  mean(imgvec( selectedpixel,: ),1); 
-    %  direction difference
     %  unified spectrum in each pixel
     x_mean   = repmat( x_RGB,[ size(img,1) size(img,2) 1 ] ); 
+    % vectorial normalization,
+    spec_basis   = x_mean ./max( sqrt(sum(x_mean.^2,3)), 0.001);     
     % normalization
-    spec_basis   = x_mean ./max( sqrt(sum(x_mean.^2,3)), 0.001);      
-    % normalization
-    imag_nmlzed  = img    ./max( sqrt(sum(img.^2,3)), 0.001);              
-    % projection similarity
+    imag_nmlzed  = img./max(  sqrt(sum(img.^2,3)) , 0.001);       %    
+    %  direction difference
+    % projection similarity 
+    % cos<\alpha, \beta>
     proj_sim     = repmat( (((sum( spec_basis .* imag_nmlzed,3) ))),[1 1 3] ); 
     % scattering_light_estimation    
     if sum( abs(spec_basis(1,1,1:3) - previous_basis),3 ) ~= 0
@@ -62,21 +64,21 @@ for step = 1 : 20
     end    
 end
 
-unified_spectrum = x_mean./max( sum(x_mean,3), 0.001);
+% S_nu: unified_spectrum of \tilde{t}
+S_nu = x_mean./max(sum(x_mean,3), 0.001); 
 % \tilde{t} is initialized.
-uspec_light  = proj_sim .* sum(img,3).* unified_spectrum;
-
+tilde_T  = proj_sim .* sum(img,3).* S_nu;
 
 intial_img =  img;
 % get_atmosphere
-[ atmosphere, uspec_light ]   = get_atmosphere(  intial_img, uspec_light);
+[ atmosphere, tilde_T ]   = get_atmosphere(  intial_img, tilde_T);
 %%%  T = 1 - omega * \tilde{t}
-T_ini  =  1 - param.omega * uspec_light ; 
+T_ini  =  1 - param.omega * tilde_T ; 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %       Rank1+:   Transmission Optimization
 %
-[Jr, T_tv ] = TransRefine( atmosphere, intial_img, 1-x_mean, T_ini, param );
+[Jr, T_tv ] = TransRefine( atmosphere, intial_img, T_ini, param );  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 %    postprocessing;  
 %    For some thick-fog scenes, this operation is not recommended;
@@ -90,18 +92,18 @@ Jr = gamma0( Jr );
 %
 
 
-% figure(); imshow([ uint8(img*255) Jr uint8((uspec_light)*255)  uint8((1-T_tv)*255)]); 
+% figure(); imshow([ uint8(img*255) Jr uint8((tilde_T)*255)  uint8((1-T_tv)*255)]); 
 % title('Rank1+ scenery recovery');truesize();
 
-figure(); imshow([ uint8(img*255) Jr]); 
+figure(); imshow([ uint8(img*255) Jr]); title('Left: Degraded image;      Right: Recoverd image')
 
 
 % save the output
 imwrite(Jr, ['results/' imgname(1:end-4) '-rank1plus.png'])
 
 
- imwrite( 1-T_tv,['results/' imgname(1:end-4) '-sT-rank1plus.png'],'png');
- imwrite( 1-T_ini,['results/' imgname(1:end-4) '-T-rank1plus.png'],'png');
+ imwrite( 1-T_tv,['results/' imgname(1:end-4) '-sT-rank1plus.png'],'png'); % Refined tilde_T
+ imwrite( 1-T_ini,['results/' imgname(1:end-4) '-T-rank1plus.png'],'png');  % initial tilde_T
 
  
  
@@ -126,8 +128,8 @@ img(:,:,1)    = LUT( img(:,:,1) + 1 );
 img = ycbcr2rgb(img);
 end
 
-function [ atmosphere, uspec_light ] = get_atmosphere( image, uspec_light )
-scatter_est = sum(uspec_light,3);
+function [ atmosphere, tilde_T ] = get_atmosphere( image, tilde_T )
+scatter_est = sum(tilde_T,3);
 n_pixels = numel(scatter_est);
 n_search_pixels = floor( n_pixels * 0.01); 
 
@@ -140,18 +142,22 @@ atmosphere = repmat( atmos, [ size(scatter_est) 1 ] );
 
 %%% To prevent over-brightness
 sek = scatter_est(indices(n_search_pixels));
-sek_vec = repmat( sek .* uspec_light(1,1,:)./max(scatter_est(1,1),0.001), [ size(scatter_est) 1 ]);
-uspec_light = uspec_light .* repmat( scatter_est <= sek, [ 1 1 3] ) + ...
-    ( 2 * sek_vec -uspec_light ) .* repmat( scatter_est > sek, [ 1 1 3] );
+sek_vec = repmat( sek .* tilde_T(1,1,:)./max(scatter_est(1,1),0.001), [ size(scatter_est) 1 ]);
+tilde_T = tilde_T .* repmat( scatter_est <= sek, [ 1 1 3] ) + ...
+    ( 2 * sek_vec -tilde_T ) .* repmat( scatter_est > sek, [ 1 1 3] );
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%   To refine transmission map of tilde t
-function [ Jr, T ] = TransRefine( atmosphere, I, sc, t0, param)
-
+%%%%   To refine transmission map of  t
+function [ Jr, T ] = TransRefine( atmosphere, I, t0, param)
+% - Note that this code is a little bit different from that presented in our
+% paper;
+% - C0 is the intensity of the transmission map T
+% - SnuT is the unified spectrum of the transimssion map T
+% - SnuT = T(1,1,:)/sum(T(1,1,:),3)
 % Initializing
-C = getC;
+Coeff = getCoeff;
 [D,Dt]  = defDDt;
 MaxIter = param.iternum;
 gamma   = param.gamma;
@@ -171,12 +177,18 @@ tao     = 1.618;
 
 % diff
 [D1I,D2I]   = D(I);
-ts = mean( t0,3 );
-[D1tG,D2tG]   = D(ts);
-D1t = sc.* repmat( D1tG,[1 1 3] );
-D2t = sc.* repmat( D2tG,[1 1 3] );
+C0 = mean(t0,3 );
 
-t = ts;
+% SnuT: unified spectrum of transmission map T
+SnuT = t0(1,1,:)/sum(t0(1,1,:),3);
+ 
+
+
+[D1tG,D2tG]   = D(C0);
+D1t = SnuT.* repmat( D1tG,[1 1 3] );
+D2t = SnuT.* repmat( D2tG,[1 1 3] );
+
+C = C0;
 
 cont = 1;
 k    = 0;
@@ -202,23 +214,23 @@ while cont
     Zmg2   = Zterm2 .* Zterm;
     %
 
-    % t-subproblem
+    % C-subproblem
     zeta1X = Xmg1 + D1I - Lxi1./beta;
     zeta1Y = Xmg2 + D2I- Lxi2./beta;
     zeta2X = Zmg1 - Leta1./beta;
     zeta2Y = Zmg2 - Leta2./beta;
     %%%%%
-    ttem = fft2( lambda3*ts ) + ...
-       beta* sum(fft2(Dt(sc.*zeta1X, sc.*zeta1Y)),3) +...
+    ttem = fft2( lambda3*C0 ) + ...
+       beta* sum(fft2(Dt(SnuT.*zeta1X, SnuT.*zeta1Y)),3) +...
        beta*fft2(Dt(zeta2X, zeta2Y));
-    ttemp = lambda3 + beta * ( sum(sc.^2 .* C.eigsDtD,3) + C.eigsDtD2 );
-    tnew = real(ifft2(ttem./(ttemp + eps)));    
-    tnew(tnew <= 0) = 0;
-    tnew(tnew >= 1) = 1;
+    ttemp = lambda3 + beta * ( sum(SnuT.^2 .* Coeff.eigsDtD,3) + Coeff.eigsDtD2 );
+    Cnew = real(ifft2(ttem./(ttemp + eps)));    
+    Cnew(Cnew <= 0) = 0;
+    Cnew(Cnew >= 1) = 1;
 
-    [D1tG,D2tG]   = D(tnew);
-    D1t = sc.* repmat( D1tG,[1 1 3] );
-    D2t = sc.* repmat( D2tG,[1 1 3] );
+    [D1tG,D2tG]   = D(Cnew);
+    D1t = SnuT.* repmat( D1tG,[1 1 3] );
+    D2t = SnuT.* repmat( D2tG,[1 1 3] );
     
     % Updating Lagrange multipliers
     Lxi1   = Lxi1  -   tao * beta * ( Xmg1 - (D1t - D1I) );
@@ -227,14 +239,14 @@ while cont
     Leta2  = Leta2 -   tao * beta * ( Zmg2 - D2tG );
     
     %
-    re = norm(tnew(:) - t(:),'fro') / norm(t(:),'fro');
-    t  = tnew;
+    re = norm(Cnew(:) - C(:),'fro') / norm(C(:),'fro');
+    C  = Cnew;
     cont  = (k < MaxIter) && (re > SolRE);
     %
 end
 
-figure,imshow(t,[])
-T = sc.*repmat(t, [1 1 3]);
+figure,imshow(C,[]),title('intensity C'), pause(0.01)
+T = SnuT.*repmat(C, [1 1 3]);
 Jr = ( I - atmosphere )./max(T,0.01) + atmosphere;
 
 
@@ -242,16 +254,16 @@ Jr = ( I - atmosphere )./max(T,0.01) + atmosphere;
 
 
 % % Nested function
-    function C = getC
+    function Coeff = getCoeff
         sizeF     = size(t0);
         % psf2otf: computes the Fast Fourier Transform (FFT) of the point-spread function (PSF)
-        C.eigsD1  = psf2otf([1,-1], sizeF);   
-        C.eigsD2  = psf2otf([1;-1], sizeF);  
-        C.eigsDtD = abs(C.eigsD1).^2 + abs(C.eigsD2).^2;  
+        Coeff.eigsD1  = psf2otf([1,-1], sizeF);   
+        Coeff.eigsD2  = psf2otf([1;-1], sizeF);  
+        Coeff.eigsDtD = abs(Coeff.eigsD1).^2 + abs(Coeff.eigsD2).^2;  
         
-        C.eigsD21  = psf2otf([1,-1], [sizeF(1) sizeF(2)]);  
-        C.eigsD22  = psf2otf([1;-1], [sizeF(1) sizeF(2)]); 
-        C.eigsDtD2 =  abs(C.eigsD21).^2 + abs(C.eigsD22).^2;
+        Coeff.eigsD21  = psf2otf([1,-1], [sizeF(1) sizeF(2)]);  
+        Coeff.eigsD22  = psf2otf([1;-1], [sizeF(1) sizeF(2)]); 
+        Coeff.eigsDtD2 =  abs(Coeff.eigsD21).^2 + abs(Coeff.eigsD22).^2;
     end
     function [D,Dt] = defDDt
         % defines finite difference operator D 
@@ -305,8 +317,3 @@ function param = defaultParamSetting(ImageType)
             end
             param.iternum = 10;
 end
-
-
-
-
-   
